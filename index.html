@@ -497,25 +497,24 @@
   }
 
   /* — Entrance —
-     The landing photos blur in first over 0.7s; the brand, nav and footer then
-     fade in after (0.7s delay), so the photos lead — like the mobile home page.
-     JS adds body.revealed once the landing images are ready. */
-  .gallery {
+     On first load the landing photos fade in one by one, in --reveal-i order
+     (joy, rubygrad, childrenwed, holyroodlove); then the brand, nav and footer
+     fade in after. JS adds body.revealed once the landing images are ready. */
+  .gallery:not(.section-scroll) .cell {
     opacity: 0;
-    filter: blur(16px);
-    transition: opacity 0.7s ease, filter 0.7s ease;
+    transition: opacity 0.85s ease;
+  }
+
+  body.revealed .gallery:not(.section-scroll) .cell {
+    opacity: 1;
+    transition-delay: calc(var(--reveal-i, 0) * 0.45s);
   }
 
   .brand-wrap,
   .top-nav,
   footer {
     opacity: 0;
-    transition: opacity 0.6s ease 0.7s;
-  }
-
-  body.revealed .gallery {
-    opacity: 1;
-    filter: blur(0);
+    transition: opacity 0.75s ease 1.7s;
   }
 
   body.revealed .brand-wrap,
@@ -525,12 +524,11 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .gallery,
+    .gallery:not(.section-scroll) .cell,
     .brand-wrap,
     .top-nav,
     footer {
       opacity: 1;
-      filter: none;
       transition: none;
     }
   }
@@ -617,6 +615,15 @@
     landing__rubygrad: { section: "gradcel", file: "gradcel__rubygrad" },
   };
 
+  // Order the landing photos fade in on first load: joy, then rubygrad, then
+  // childrenwed, then holyroodlove (the last one).
+  const LANDING_REVEAL_ORDER = {
+    landing__joy: 0,
+    landing__rubygrad: 1,
+    landing__childrenwed: 2,
+    landing__holyroodlove: 3,
+  };
+
   // Stacking carousel: each scrolled-off image deposits on the left, leaving a
   // STACK_OFFSET sliver. With STACK_WIPE on, the higher image wipes the one below
   // (clean edge) instead of showing every previous photo's sliver.
@@ -687,6 +694,7 @@
       const scale = LANDING_SCALES[slot] ?? 1;
       cell.style.setProperty("--scale", scale);
       cell.dataset.scale = scale;
+      cell.style.setProperty("--reveal-i", LANDING_REVEAL_ORDER[item.file] ?? slot);
       cell.querySelector("img").addEventListener("load", fitLanding);
       gallery.appendChild(cell);
     });
@@ -1109,9 +1117,6 @@
   function revealHome() {
     if (document.body.classList.contains("revealed")) return;
     document.body.classList.add("revealed");
-    // Drop the (now zero) blur once the entrance ends so the gallery isn't
-    // composited through a filter when it becomes the section scroller.
-    setTimeout(() => { gallery.style.filter = "none"; }, 800);
   }
   const landingImgs = Array.from(gallery.querySelectorAll("img"));
   const pendingImgs = landingImgs.filter((img) => !(img.complete && img.naturalWidth));

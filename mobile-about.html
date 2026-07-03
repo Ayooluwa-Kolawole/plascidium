@@ -39,18 +39,18 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: clamp(1.5rem, 5vh, 3rem) 7vw
-      calc(clamp(1.5rem, 5vh, 3rem) + env(safe-area-inset-bottom));
+    align-items: flex-start;
+    padding: clamp(1.5rem, 5vh, 3rem) 7vw env(safe-area-inset-bottom);
   }
 
-  /* Flex spacers set the vertical rhythm: a generous gap up top, a large gap
-     between the image and the back link, a little beneath it. */
+  /* Flex spacers set the vertical rhythm: a generous gap up top, then equal gaps
+     above and below the back link so it sits midway between the bottom of the
+     image and the bottom of the page. */
   .spacer-top { flex: 2.6 1 0; }
-  .spacer-mid { flex: 1.5 1 0; }
+  .spacer-mid { flex: 1 1 0; }
   .spacer-bottom { flex: 1 1 0; }
 
-  /* One centred column shared by the text, the rule and the image. */
+  /* One left-aligned column shared by the text, the rule and the image. */
   .wrap {
     width: min(68vw, 260px);
   }
@@ -82,12 +82,12 @@
     margin: clamp(1.4rem, 6vw, 2.4rem) 0 clamp(1.8rem, 7vw, 2.8rem);
   }
 
-  /* Portrait: 20% narrower than the column, centred, with a blur-up placeholder
-     (blurred 700px) that the full image fades in over once loaded. */
+  /* Portrait: 20% narrower than the column, left-aligned, with a blur-up
+     placeholder (blurred 700px) that the full image fades in over once loaded. */
   .shot {
     position: relative;
     width: 80%;
-    margin: 0 auto;
+    margin: 0;
     overflow: hidden;
     line-height: 0;
   }
