@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Send phones to the dedicated mobile page; tablets and desktops stay here.
+  // Runs before render (blocking, in <head>) and uses replace() so it leaves no
+  // history entry. No reverse redirect lives on the mobile pages, so they can
+  // still be previewed in a desktop browser.
+  (function () {
+    var ua = navigator.userAgent || navigator.vendor || "";
+    var isPhone =
+      /Android.*Mobile|iPhone|iPod|Windows Phone|BlackBerry|BB10|IEMobile|Opera Mini/i.test(ua) ||
+      (navigator.maxTouchPoints > 1 &&
+        matchMedia("(pointer: coarse)").matches &&
+        Math.min(screen.width, screen.height) <= 500);
+    if (isPhone) location.replace("mobile.html");
+  })();
+</script>
+<title>Ayooluwa Kolawole</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #0f0f0f;
+    --line: #e6e6e6;
+    --frame: #080808;
+    --name-size: clamp(2rem, 6.9vw, 4rem);
+    --landing-size: min(70vh, 680px);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Gill Sans", "Gill Sans MT", "Trebuchet MS", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  body {
+    overflow-x: hidden; /* stray horizontal overflow can't shift the layout */
+  }
+
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: clamp(3.25rem, 6vw, 5.5rem);
+    padding-bottom: 4.2rem;
+    padding-left: 10%;
+    padding-right: 10%;
+  }
+
+  .brand-wrap {
+    text-align: center;
+    padding: 0 1rem;
+  }
+
+  .brand {
+    margin: 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    line-height: 1;
+    font-size: var(--name-size);
+    cursor: pointer;
+  }
+
+  .top-nav {
+    margin-top: clamp(1.1rem, 2vw, 1.6rem);
+    /* Start at the page's left edge (cancel the 10% left padding); break out a
+       little on the right so the section titles fit. */
+    margin-left: -12.5%;
+    margin-right: -12.5%;
+    border: 1px solid var(--line);
+    display: flex;
+  }
+
+  .top-nav button {
+    appearance: none;
+    border: 0;
+    border-right: 1px solid var(--line);
+    /* Size each box to its title (plus padding) instead of forcing 25%. */
+    flex: 1 1 auto;
+    background: transparent;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.36em;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 0.68rem 1.1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+    transition: box-shadow 0.15s ease;
+  }
+
+  .top-nav button:last-child {
+    border-right: 0;
+  }
+
+  .top-nav button.active {
+    background: #FFE358;
+    position: relative;
+    z-index: 1;
+    border-right-color: transparent;
+    box-shadow: 0 0 0 1px #FFE358;
+  }
+
+  /* Hide the grey divider on the left side of the selected button too. */
+  .top-nav button:has(+ button.active) {
+    border-right-color: transparent;
+  }
+
+  /* Hover: a yellow underline whose outer 1px covers the grey bottom edge of the
+     nav, so the rectangle's bottom border reads as yellow while hovered. */
+  .top-nav button:not(.active):hover {
+    position: relative;
+    z-index: 1;
+    box-shadow: inset 0 -2px 0 0 #FFE358, 0 1px 0 0 #FFE358;
+  }
+
+  .gallery-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(2.3rem, 7vw, 4.6rem) clamp(1rem, 3vw, 2rem) 1.4rem;
+  }
+
+  .gallery {
+    /* Landing row breaks out of the page's 10% side padding to ~full width
+       (centred by .gallery-wrap), giving the images more room to be larger.
+       .gallery.section-scroll overrides this width below. */
+    width: 94vw;
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(1.54rem, 3.53vw, 2.87rem);
+  }
+
+  /* Section view: let the carousel run all the way to the right browser edge. */
+  .gallery-wrap:has(.section-scroll) {
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .gallery.section-scroll {
+    position: relative;
+    /* Extend through the page's 10% right padding to the viewport edge. */
+    flex: 0 0 auto;
+    width: calc(100% + 10vw);
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+    overflow-x: auto;
+    /* Trailing spacer so the last image still ends at its previous position
+       (the page's 10% right margin plus the wrap's right padding). */
+    padding: 0 calc(10vw + clamp(1rem, 3vw, 2rem)) 1rem 0;
+    gap: 0; /* spacing comes from each cell's border-right spacer instead */
+    scrollbar-width: none;
+  }
+
+  .gallery.section-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Section cells share one height; width follows each image's aspect ratio.
+     No frame border here, and a blur-up: a small placeholder image (blurred,
+     with a noise overlay) shows until the full 1600px image fades in. */
+  .gallery.section-scroll .cell {
+    /* Deposit/stack effect: each image pins to the left as it scrolls off,
+       offset by 10px per image so a 10px sliver of each stays visible. Later
+       images sit on top of earlier ones (DOM order). */
+    position: sticky;
+    left: calc(var(--i, 0) * 10px);
+    width: auto;
+    height: min(52vh, 486px);
+    border: 0;
+    /* Opaque white spacer on the right of every image. The image fills the
+       content box and never covers this border, so it hides whatever lower
+       (wider) image would otherwise poke out past this image's right edge. */
+    border-right: 44px solid transparent;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  /* "Wipe" mode (toggled by the .wipe class): make the right spacer opaque so a
+     higher image fully covers the ones below it. Off = transparent spacer, which
+     lets the lower images show through (the noisy effect). */
+  .gallery.section-scroll.wipe .cell {
+    border-right-color: var(--bg);
+  }
+
+  /* Placeholder (700px) defines the cell width and stays blurred underneath. */
+  .gallery.section-scroll .cell .ph {
+    width: auto;
+    object-fit: contain;
+    filter: blur(14px);
+    transform: scale(1.08);
+  }
+
+  /* Full 1600px image, fades in on top once loaded. */
+  .gallery.section-scroll .cell .full {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .gallery.section-scroll .cell.loaded .full {
+    opacity: 1;
+  }
+
+  /* Once the full image has faded in, stop painting the blurred placeholder so it
+     isn't re-rasterised every frame while scrolling (the main jitter source). The
+     delayed visibility flip keeps it visible during the 0.6s fade. */
+  .gallery.section-scroll .cell.loaded .ph {
+    visibility: hidden;
+    transition: visibility 0s 0.6s;
+  }
+
+  /* Fine noise grain over the blurred placeholder while loading. */
+  .gallery.section-scroll .cell .noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    transition: opacity 0.6s ease;
+  }
+
+  .gallery.section-scroll .cell.loaded .noise {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0s 0.6s;
+  }
+
+  .cell {
+    border: 1px solid var(--frame);
+    background: var(--frame);
+    line-height: 0;
+    padding: 0;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+
+  .cell img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Landing: no crop. Each image scales so its longest side equals --landing-size,
+     keeping its original aspect ratio; the frame shrinks to fit. */
+  .gallery:not(.section-scroll) .cell img {
+    width: auto;
+    height: auto;
+    max-width: calc(var(--landing-size) * var(--scale, 1));
+    max-height: calc(var(--landing-size) * var(--scale, 1));
+    object-fit: contain;
+  }
+
+  footer {
+    position: fixed;
+    right: 1.2rem;
+    bottom: 1rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    color: #333;
+  }
+
+  footer a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    text-decoration: underline;
+  }
+
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: var(--bg);
+    align-items: center;
+    justify-content: center;
+  }
+
+  #lightbox.open {
+    display: flex;
+  }
+
+  /* Top (brand / curious) and bottom (section / copyright) bars. */
+  .lb-bar {
+    position: fixed;
+    left: 1.2rem;
+    right: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .lb-top {
+    top: 1rem;
+  }
+
+  .lb-bottom {
+    bottom: 1rem;
+  }
+
+  /* Tiny filmstrip: a centred window with the strip of frames sliding through it
+     so the current photo sits in the middle. JS nestles it inline on the footer
+     line when it clears the labels, otherwise it rests here just above them. */
+  .lb-reel {
+    position: fixed;
+    left: 50%;
+    bottom: 5rem;
+    transform: translateX(-50%);
+    height: 16px;
+    width: clamp(200px, 46vw, 560px);
+    overflow: hidden;
+    z-index: 2;
+    /* Fade the frames out at both edges as they enter/leave the window. */
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  }
+
+  
+  /* Origin sits at the window's centre; the track slides so the active frame's
+     centre lands here. */
+  .lb-reel-track {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: transform 0.35s ease;
+    will-change: transform;
+  }
+
+  .lb-reel-track img {
+    display: block;
+    height: 100%;
+    width: auto;
+    object-fit: cover;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.15s ease;
+  }
+
+  .lb-reel-track img:hover {
+    opacity: 0.75;
+  }
+
+  .lb-reel-track img.active {
+    opacity: 1;
+  }
+
+  .lb-home,
+  #lb-section {
+    cursor: pointer;
+  }
+
+  /* Copyright matches the normal-page footer rather than the uppercase bar. */
+  .lb-copy {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 0.68rem;
+    color: #333;
+  }
+
+  /* Image + caption, centred together; caption aligns to the image edges. */
+  .lb-figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    max-width: min(82vw, 1500px);
+  }
+
+  /* The frame carries the border and clips the image's blur to its bounds. */
+  .lb-frame {
+    display: block;
+    max-width: 100%;
+    border: 1px solid var(--frame);
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .lb-figure img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+  }
+
+  .lb-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .lb-arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    line-height: 1;
+    padding: 0.5rem;
+    cursor: pointer;
+  }
+
+  .lb-arrow svg {
+    display: block;
+    width: 26px;
+    height: 26px;
+  }
+
+  .lb-prev {
+    left: clamp(0.75rem, 2vw, 2rem);
+  }
+
+  .lb-next {
+    right: clamp(0.75rem, 2vw, 2rem);
+  }
+
+  @media (max-width: 920px) {
+    .top-nav button {
+      flex: 1 1 50%;
+    }
+
+    .gallery-wrap {
+      align-items: start;
+      padding-top: 1.5rem;
+    }
+
+    .gallery,
+    .gallery.section-scroll {
+      width: 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding: 0 0.35rem 0.8rem;
+      scrollbar-width: thin;
+    }
+
+    .gallery .cell {
+      flex: 0 0 auto;
+    }
+
+    footer {
+      position: static;
+      text-align: center;
+      margin-top: auto;
+      padding-bottom: 0.8rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="brand-wrap">
+    <h1 class="brand" id="brand">Ayooluwa Kolawole</h1>
+  </header>
+
+  <nav class="top-nav" aria-label="Portfolio sections">
+    <button data-section="wed">Weddings &amp; Elopements</button>
+    <button data-section="gradcel">Events &amp; Celebrations</button>
+    <button data-section="corpcomm">Commercial &amp; Commissioned</button>
+    <button data-section="archive">Personal Work &amp; Archive</button>
+  </nav>
+
+  <main class="gallery-wrap">
+    <section class="gallery" id="gallery"></section>
+  </main>
+
+  <footer>
+    <a href="about.html">About</a> | &copy; <span id="year"></span> Ayooluwa Kolawole. All rights reserved.
+  </footer>
+</div>
+
+<div id="lightbox" aria-hidden="true">
+  <header class="lb-bar lb-top">
+    <span class="lb-home">Ayooluwa Kolawole</span>
+  </header>
+
+  <button class="lb-arrow lb-prev" type="button" aria-label="Previous image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M15 5 L8 12 L15 19" />
+    </svg>
+  </button>
+
+  <figure class="lb-figure">
+    <div class="lb-frame">
+      <img id="lb-img" src="" alt="">
+    </div>
+    <figcaption class="lb-meta">
+      <span id="lb-location"></span>
+      <span id="lb-date"></span>
+    </figcaption>
+  </figure>
+
+  <button class="lb-arrow lb-next" type="button" aria-label="Next image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 5 L16 12 L9 19" />
+    </svg>
+  </button>
+
+  <footer class="lb-bar lb-bottom">
+    <span id="lb-section"></span>
+    <span class="lb-copy">&copy; <span id="lb-year"></span> Ayooluwa Kolawole. All rights reserved.</span>
+  </footer>
+
+  <div class="lb-reel" id="lb-reel" aria-label="Filmstrip">
+    <div class="lb-reel-track" id="lb-reel-track"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+  const PREFIX = "Processed_Images/";
+  const THUMB_SUFFIX = "-700.webp";
+  const LARGE_SUFFIX = "-1600.webp";
+
+  const SECTION_ORDER = ["wed", "gradcel", "corpcomm", "archive"];
+
+  const LANDING_BORDERS = [20, 10, 1, 5];
+  // Per-image size multiplier on the landing row, relative to --landing-size.
+  // Order: childrenwed, joy, holyroodlove, rubygrad.
+  const LANDING_SCALES = [1, 1.15, 1, 0.9];
+  // Each landing image also lives in a section; clicking it opens the lightbox
+  // there (so prev/next and the section label are correct).
+  const LANDING_LINKS = {
+    landing__childrenwed: { section: "wed", file: "wed__childrenwed" },
+    landing__joy: { section: "archive", file: "archive__joy" },
+    landing__holyroodlove: { section: "wed", file: "wed__holyroodlove" },
+    landing__rubygrad: { section: "gradcel", file: "gradcel__rubygrad" },
+  };
+
+  // Stacking carousel: each scrolled-off image deposits on the left, leaving a
+  // STACK_OFFSET sliver. With STACK_WIPE on, the higher image wipes the one below
+  // (clean edge) instead of showing every previous photo's sliver.
+  const STACK_OFFSET = 10; // px of each deposited image kept visible
+  const STACK_WIPE = true; // set false to show the photo slivers instead
+
+  const gallery = document.getElementById("gallery");
+  const brand = document.getElementById("brand");
+  const navButtons = Array.from(document.querySelectorAll(".top-nav button"));
+
+  const lightbox = document.getElementById("lightbox");
+  const lbImg = document.getElementById("lb-img");
+  const lbLocation = document.getElementById("lb-location");
+  const lbDate = document.getElementById("lb-date");
+  const lbSectionEl = document.getElementById("lb-section");
+  const lbReel = document.getElementById("lb-reel");
+  const lbReelTrack = document.getElementById("lb-reel-track");
+  const lbCopy = document.querySelector(".lb-copy");
+  const lbPrev = document.querySelector(".lb-prev");
+  const lbNext = document.querySelector(".lb-next");
+
+  let lbSection = "landing";
+  let lbIndex = 0;
+  let visibleIndices = [];
+
+  function setYear() {
+    const y = new Date().getFullYear();
+    document.getElementById("year").textContent = y;
+    document.getElementById("lb-year").textContent = y;
+  }
+
+  let mode = "landing";
+
+  function setActiveNav(section) {
+    navButtons.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.section === section);
+    });
+  }
+
+  function makeCell(item, onClick) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cell";
+
+    const img = document.createElement("img");
+    img.src = PREFIX + item.file + THUMB_SUFFIX;
+    img.alt = "";
+    img.loading = "lazy";
+
+    cell.appendChild(img);
+    cell.addEventListener("click", onClick);
+    return cell;
+  }
+
+  function renderLanding() {
+    mode = "landing";
+    gallery.innerHTML = "";
+    gallery.classList.remove("section-scroll", "wipe");
+    setActiveNav(null);
+
+    images.landing.slice(0, 4).forEach((item, slot) => {
+      const cell = makeCell(item, () => openLandingImage(item, slot));
+      cell.style.borderWidth =
+        LANDING_BORDERS[slot % LANDING_BORDERS.length] + "px";
+      const scale = LANDING_SCALES[slot] ?? 1;
+      cell.style.setProperty("--scale", scale);
+      cell.dataset.scale = scale;
+      cell.querySelector("img").addEventListener("load", fitLanding);
+      gallery.appendChild(cell);
+    });
+
+    fitLanding();
+  }
+
+  // Force the landing images onto one row by shrinking them proportionally to fit
+  // the available width (using each image's real aspect ratio, borders and gaps).
+  // Skipped on mobile (<= 920px), where the row stays full-size and scrolls.
+  function fitLanding() {
+    if (mode !== "landing") return;
+    const root = document.documentElement;
+    if (window.innerWidth <= 920) {
+      root.style.removeProperty("--landing-size");
+      return;
+    }
+
+    const cells = Array.from(gallery.children);
+    if (!cells.length) return;
+
+    let sumRatio = 0; // sum of each image's displayed-width / longest-side
+    let sumBorders = 0; // total horizontal border across all frames
+    for (const cell of cells) {
+      const img = cell.querySelector("img");
+      if (!img || !img.naturalWidth || !img.naturalHeight) return; // retry on load
+      const scale = Number(cell.dataset.scale) || 1;
+      sumRatio +=
+        (img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight)) * scale;
+      sumBorders += 2 * (parseFloat(getComputedStyle(cell).borderLeftWidth) || 0);
+    }
+
+    const gap = parseFloat(getComputedStyle(gallery).columnGap) || 0;
+    const avail = gallery.clientWidth - sumBorders - (cells.length - 1) * gap;
+    const maxSize = Math.min(window.innerHeight * 0.7, 680); // the design default
+    // 0.87 = overall scale; lower to shrink the whole landing row, raise to grow.
+    const size = 0.9 * Math.min(maxSize, avail / sumRatio);
+    root.style.setProperty("--landing-size", size + "px");
+  }
+
+  // One continuous row holding every section, so scrolling flows from one into the next.
+  function renderSections() {
+    mode = "sections";
+    gallery.innerHTML = "";
+    gallery.classList.add("section-scroll");
+    gallery.classList.toggle("wipe", STACK_WIPE);
+
+    let order = 0;
+    SECTION_ORDER.forEach((section) => {
+      (images[section] || []).forEach((item, index) => {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "cell loading";
+        cell.dataset.section = section;
+        const orderIndex = order++;
+        cell.style.setProperty("--i", orderIndex);
+        cell.dataset.order = orderIndex;
+
+        // Blurred placeholder (700px) — loads fast and defines the cell width.
+        const ph = document.createElement("img");
+        ph.className = "ph";
+        ph.src = PREFIX + item.file + THUMB_SUFFIX;
+        ph.alt = "";
+        ph.setAttribute("aria-hidden", "true");
+
+        // Full image (1600px) — fades in once decoded.
+        const full = document.createElement("img");
+        full.className = "full";
+        full.alt = "";
+        full.loading = "lazy";
+        full.decoding = "async";
+        full.addEventListener("load", () => cell.classList.add("loaded"), {
+          once: true,
+        });
+        full.src = PREFIX + item.file + LARGE_SUFFIX;
+        if (full.complete && full.naturalWidth) cell.classList.add("loaded");
+
+        const noise = document.createElement("span");
+        noise.className = "noise";
+
+        cell.append(ph, full, noise);
+        cell.addEventListener("click", () => onCellClick(cell, section, index));
+        gallery.appendChild(cell);
+      });
+    });
+  }
+
+  // Glide the row so `cell` becomes the fully shown image (un-deposits it).
+  // offsetLeft is unreliable on sticky elements, so sum the natural widths of the
+  // preceding cells (they're flush, gap: 0) to find this cell's layout position.
+  function slideToCell(cell) {
+    const i = Number(cell.dataset.order) || 0;
+    let naturalLeft = 0;
+    for (let el = cell.previousElementSibling; el; el = el.previousElementSibling) {
+      naturalLeft += el.offsetWidth;
+    }
+    const max = gallery.scrollWidth - gallery.clientWidth;
+    const target = Math.max(0, Math.min(max, naturalLeft - i * STACK_OFFSET));
+    gallery.scrollTo({ left: target, behavior: "smooth" });
+  }
+
+  // A click on a deposited sliver slides it back into view; a click on the fully
+  // shown image opens the lightbox.
+  function onCellClick(cell, section, index) {
+    const rect = cell.getBoundingClientRect();
+    const next = cell.nextElementSibling;
+    const rightLimit = next ? next.getBoundingClientRect().left : rect.right;
+    const visible = Math.min(rect.right, rightLimit) - rect.left;
+    if (visible >= rect.width - 2) {
+      openLightbox(section, index);
+    } else {
+      slideToCell(cell);
+    }
+  }
+
+  // While navigating to a clicked section, lock the highlight to it so the
+  // scroll-driven sync doesn't fight the immediate snap. Released when the scroll
+  // settles (scrollend) or the user takes over (wheel), with a timeout fallback.
+  let pendingSection = null;
+  let pendingTimer = null;
+
+  function releasePendingSection() {
+    pendingSection = null;
+    clearTimeout(pendingTimer);
+    syncActiveNav();
+  }
+
+  function goToSection(section) {
+    if (mode !== "sections") renderSections();
+    pendingSection = section;
+    setActiveNav(section);
+    clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(releasePendingSection, 1200);
+    const first = gallery.querySelector(`.cell[data-section="${section}"]`);
+    if (first) slideToCell(first);
+  }
+
+  // Highlight the nav item for whichever section sits under the centre of the row.
+  let navRaf = null;
+  function syncActiveNav() {
+    navRaf = null;
+    if (mode !== "sections") return;
+    // A clicked section stays highlighted until we arrive there.
+    if (pendingSection) {
+      setActiveNav(pendingSection);
+      return;
+    }
+    // Walk the row in natural (layout) coordinates and find the section occupying a
+    // point ~1/3 into the viewport. offsetWidth is reliable on sticky cells, and the
+    // result is monotonic in scrollLeft, so it never flickers between sections.
+    const ref = gallery.scrollLeft + gallery.clientWidth * 0.33;
+    let x = 0;
+    let active = null;
+    for (const cell of gallery.children) {
+      x += cell.offsetWidth;
+      if (x > ref) {
+        active = cell.dataset.section;
+        break;
+      }
+    }
+    if (!active && gallery.lastElementChild) {
+      active = gallery.lastElementChild.dataset.section;
+    }
+    if (active) setActiveNav(active);
+  }
+
+  gallery.addEventListener("scroll", () => {
+    if (navRaf === null) navRaf = requestAnimationFrame(syncActiveNav);
+  });
+
+  // The click-to-navigate scroll has settled — release the highlight lock.
+  gallery.addEventListener("scrollend", releasePendingSection);
+
+  function renderLightbox() {
+    const indexInSection = visibleIndices[lbIndex];
+    const item = images[lbSection][indexInSection];
+
+    lbImg.src = PREFIX + item.file + LARGE_SUFFIX;
+
+    lbLocation.textContent = item.location || "";
+    lbDate.textContent = item.date || "";
+
+    const navBtn = document.querySelector(
+      `.top-nav button[data-section="${lbSection}"]`
+    );
+    lbSectionEl.textContent = navBtn ? navBtn.textContent : "";
+
+    Array.from(lbReelTrack.children).forEach((el, i) => {
+      el.classList.toggle("active", i === lbIndex);
+    });
+    centerReel();
+    positionReel();
+  }
+
+  // Slide the track so the active frame's centre sits at the window's centre.
+  function centerReel() {
+    const active = lbReelTrack.children[lbIndex];
+    if (!active) return;
+    const center = active.offsetLeft + active.offsetWidth / 2;
+    lbReelTrack.style.transform = `translateX(${-center}px)`;
+  }
+
+  // Drop the filmstrip onto the footer line when it fits (centred) between the
+  // section label on the left and the copyright on the right without touching
+  // them; otherwise float it just above the labels.
+  function positionReel() {
+    const PAD = 24; // min clearance from each label
+    const sec = lbSectionEl.getBoundingClientRect();
+    const copy = lbCopy.getBoundingClientRect();
+    const reelW = lbReel.offsetWidth;
+    const center = window.innerWidth / 2;
+    const fits =
+      center - reelW / 2 > sec.right + PAD &&
+      center + reelW / 2 < copy.left - PAD;
+    lbReel.style.bottom = fits ? "1rem" : "5rem";
+  }
+
+  // Populate the filmstrip with one thumbnail per image in the current section.
+  function buildReel() {
+    lbReelTrack.innerHTML = "";
+    const list =
+      lbSection === "landing" ? images.landing.slice(0, 4) : images[lbSection];
+    visibleIndices.forEach((indexInSection, i) => {
+      const item = list[indexInSection];
+      const img = document.createElement("img");
+      img.src = PREFIX + item.file + THUMB_SUFFIX;
+      img.alt = "";
+      img.loading = "lazy";
+      // Frames size from their natural aspect once loaded, so re-centre then.
+      img.addEventListener("load", centerReel, { once: true });
+      img.addEventListener("click", (event) => {
+        event.stopPropagation();
+        lbIndex = i;
+        renderLightbox();
+      });
+      lbReelTrack.appendChild(img);
+    });
+  }
+
+  function openLightbox(section, index) {
+    lbSection = section;
+    visibleIndices =
+      section === "landing"
+        ? images.landing.slice(0, 4).map((_, i) => i)
+        : images[section].map((_, i) => i);
+    lbIndex = index;
+    lightbox.classList.add("open");
+    lightbox.setAttribute("aria-hidden", "false");
+    buildReel();
+    renderLightbox();
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    lightbox.setAttribute("aria-hidden", "true");
+  }
+
+  // Open a landing image in its real section so prev/next and the label are right.
+  function openLandingImage(item, slot) {
+    const link = LANDING_LINKS[item.file];
+    if (link) {
+      const idx = images[link.section].findIndex((it) => it.file === link.file);
+      if (idx >= 0) return openLightbox(link.section, idx);
+    }
+    openLightbox("landing", slot);
+  }
+
+  function moveLightbox(step) {
+    const len = visibleIndices.length;
+    if (!len) return;
+    lbIndex = (lbIndex + step + len) % len;
+    renderLightbox();
+  }
+
+  navButtons.forEach((btn) => {
+    btn.addEventListener("click", () => goToSection(btn.dataset.section));
+  });
+
+  brand.addEventListener("click", renderLanding);
+
+  // Wheel-to-horizontal scrolling. We let the browser do the actual scrolling
+  // (native = jitter-free) and only translate a vertical wheel into horizontal
+  // movement; horizontal gestures (trackpad swipes) pass straight through.
+  gallery.addEventListener(
+    "wheel",
+    (event) => {
+      if (mode !== "sections") return;
+      if (gallery.scrollWidth <= gallery.clientWidth) return;
+      // User is taking over — stop forcing the clicked section's highlight.
+      pendingSection = null;
+      // Horizontal intent already scrolls the row natively — don't interfere.
+      if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+
+      let delta = event.deltaY;
+      if (event.deltaMode === 1) delta *= 16; // lines -> px
+      else if (event.deltaMode === 2) delta *= gallery.clientWidth; // pages -> px
+      if (delta === 0) return;
+
+      gallery.scrollLeft += delta;
+      event.preventDefault();
+    },
+    { passive: false }
+  );
+
+  lbPrev.addEventListener("click", (event) => {
+    event.stopPropagation();
+    moveLightbox(-1);
+  });
+
+  lbNext.addEventListener("click", (event) => {
+    event.stopPropagation();
+    moveLightbox(1);
+  });
+
+  lightbox.addEventListener("click", (event) => {
+    if (event.target === lightbox) closeLightbox();
+  });
+
+  // Top-left brand returns to the landing page; bottom-left section name jumps to
+  // that section in the carousel.
+  document.querySelector(".lb-home").addEventListener("click", () => {
+    closeLightbox();
+    renderLanding();
+  });
+
+  lbSectionEl.addEventListener("click", () => {
+    if (!lbSection || lbSection === "landing") return;
+    closeLightbox();
+    goToSection(lbSection);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (!lightbox.classList.contains("open")) return;
+    if (event.key === "Escape") closeLightbox();
+    if (event.key === "ArrowLeft") moveLightbox(-1);
+    if (event.key === "ArrowRight") moveLightbox(1);
+  });
+
+  // Wheel / trackpad scrolling steps through images like the main carousel.
+  // Accumulate the scroll until it clears a small threshold, then advance once
+  // and reset — so a single mouse-wheel notch moves exactly one photo with no
+  // delay, while a fast trackpad flick is paced by the threshold instead.
+  let lbWheelAccum = 0;
+  lightbox.addEventListener(
+    "wheel",
+    (event) => {
+      if (!lightbox.classList.contains("open")) return;
+      event.preventDefault();
+      const delta =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      // A new gesture in the opposite direction shouldn't fight leftover accum.
+      if (Math.sign(delta) !== Math.sign(lbWheelAccum)) lbWheelAccum = 0;
+      lbWheelAccum += delta;
+      if (Math.abs(lbWheelAccum) >= 12) {
+        moveLightbox(lbWheelAccum > 0 ? 1 : -1);
+        lbWheelAccum = 0;
+      }
+    },
+    { passive: false }
+  );
+
+  window.addEventListener("resize", fitLanding);
+  window.addEventListener("resize", () => {
+    if (lightbox.classList.contains("open")) positionReel();
+  });
+
+  setYear();
+  renderLanding();
+</script>
+</body>
+</html>

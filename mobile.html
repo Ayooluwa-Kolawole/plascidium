@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ayooluwa Kolawole</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #0f0f0f;
+    --line: #e6e6e6;
+    /* The active image's slot width (its rendered width is capped by this).
+       Reduced from the first pass. */
+    --slide-w: clamp(240px, 72vw, 290px);
+    /* White gutter between the active image and the neighbours peeking in. */
+    --slide-gap: 36px;
+    /* The carousel's fixed height: the height of a full 2:3 image at the slot
+       width, so a 2:3 portrait exactly fills it and its top is a stable line. */
+    --slide-h: calc(var(--slide-w) * 3 / 2);
+    --footer-bg: #f0f0f0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Gill Sans", "Gill Sans MT", "Trebuchet MS", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  /* Lock the page: no vertical scroll, no rubber-band bounce. */
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* Full visible-viewport column. dvh tracks Safari's shrinking toolbar so the
+     footer never slips under the browser chrome. */
+  .page {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* — Header: brand across two lines — */
+  .brand-wrap {
+    flex: 0 0 auto;
+    /* Centre the brand vertically between the top of the page and the top of a
+       full-height 2:3 image: the auto top/bottom margins split the free space
+       above the carousel equally. */
+    margin: auto 0;
+    text-align: center;
+    padding: 0 0.8rem;
+  }
+
+  .brand {
+    margin: 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1.32;
+    font-size: clamp(1.65rem, 7.5vw, 2.9rem);
+  }
+
+  /* Filmstrip carousel. Fixed at the 2:3 image height so a 2:3 portrait fills
+     it exactly (its top defines the line the header centres against) and other
+     ratios are contained and vertically centred — nothing jumps. */
+  .viewer {
+    position: relative; /* offsetLeft of slides is measured from here */
+    flex: 0 1 auto; /* holds the 2:3 height; only shrinks if the page is short */
+    height: var(--slide-h);
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--slide-gap);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory; /* magnetic: always rests on a photo */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+  }
+
+  .viewer::-webkit-scrollbar {
+    display: none;
+  }
+
+  .slide {
+    flex: 0 0 var(--slide-w);
+    width: var(--slide-w);
+    height: 100%;
+    scroll-snap-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* No frame border. Contained so a 250px slot never crops the photo. */
+  .slide img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* — Thumbnail reel: equal width, natural height, active one full opacity — */
+  .reel {
+    position: relative; /* offsetLeft of thumbs is measured from here */
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    /* Auto top/bottom margins centre the reel in the gap between the carousel
+       and the footer (equal share of the free space, like the header above). */
+    margin: auto 0;
+  }
+
+  .reel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reel-track {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+  }
+
+  .thumb {
+    flex: 0 0 auto;
+    width: 22px;
+    height: auto;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    /* Non-active photos are simply dimmed (as on desktop), not desaturated. */
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+  }
+
+  .thumb img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .thumb.active {
+    opacity: 1;
+  }
+
+  /* — Footer bar: pinned to the bottom with a hairline above it — */
+  footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    background: var(--bg);
+    /* Clear the iOS home indicator so the bar stays fully visible. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .copy {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    background: var(--footer-bg);
+    padding: 0.85rem 1rem;
+    font-size: clamp(0.64rem, 3.1vw, 0.8rem);
+    letter-spacing: 0.01em;
+    color: #333;
+  }
+
+  /* min-width:0 lets the copyright wrap rather than shoving About off-edge. */
+  .copy-inner {
+    min-width: 0;
+  }
+
+  .about {
+    /* Fill the white space left of the copyright box and centre within it. */
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+    color: var(--text);
+    text-decoration: none;
+    font-size: clamp(0.95rem, 4.2vw, 1.12rem);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  .about svg {
+    display: block;
+    width: 17px;
+    height: 17px;
+    /* Nudge down so the chevron optically centres with the "About" caps. */
+    position: relative;
+    top: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="brand-wrap">
+    <h1 class="brand" id="brand">Ayooluwa<br>Kolawole</h1>
+  </header>
+
+  <section class="viewer" id="viewer" aria-label="Photographs"></section>
+
+  <nav class="reel" id="reel" aria-label="Jump to photograph">
+    <div class="reel-track" id="reel-track"></div>
+  </nav>
+
+  <footer>
+    <a class="about" href="mobile-about.html">About
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 5 L16 12 L9 19" />
+      </svg>
+    </a>
+    <span class="copy"><span class="copy-inner">&copy; <span id="year"></span> Ayooluwa Kolawole. All rights reserved.</span></span>
+  </footer>
+</div>
+
+<script src="mobile-data.js"></script>
+<script>
+  const PREFIX = "Processed_Images/";
+  const MAIN_SUFFIX = "-1200.webp";
+  const THUMB_SUFFIX = "-700.webp";
+
+  const viewer = document.getElementById("viewer");
+  const reel = document.getElementById("reel");
+  const reelTrack = document.getElementById("reel-track");
+  const brand = document.getElementById("brand");
+
+  const N = mobileReel.length;
+  // Three identical copies of the strip make the carousel endless: we live in
+  // the middle copy and silently teleport back to it whenever a rest lands in a
+  // side copy. Because the copies are pixel-identical (neighbours included), the
+  // teleport is invisible.
+  const COPIES = 3;
+  const MID = 1;
+  const BASE = MID * N; // DOM index of image 0 in the middle copy
+
+  const slides = [];
+  const thumbEls = [];
+  let step = 0;         // centre-to-centre distance between adjacent slides
+  let thumbStep = 0;    // centre-to-centre distance between adjacent thumbs
+  let thumbCenter0 = 0; // centre of the first thumb, in reel scroll coords
+  let currentImage = 0; // 0..N-1
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // Build the carousel (COPIES × N slides) and the reel (one set of N thumbs).
+  for (let c = 0; c < COPIES; c++) {
+    for (let i = 0; i < N; i++) {
+      const item = mobileReel[i];
+      const idx = c * N + i;
+      const slide = document.createElement("button");
+      slide.type = "button";
+      slide.className = "slide";
+      slide.dataset.image = i;
+
+      const img = document.createElement("img");
+      img.src = PREFIX + item.file + MAIN_SUFFIX;
+      img.alt = "";
+      img.decoding = "async";
+      const eager = c === MID && i === 0;
+      img.loading = eager ? "eager" : "lazy";
+      if (eager) img.fetchPriority = "high";
+
+      slide.appendChild(img);
+      slide.addEventListener("click", () => scrollToIndex(idx, true));
+      viewer.appendChild(slide);
+      slides.push(slide);
+    }
+  }
+
+  // Reel mirrors the carousel: three identical copies so it can glide smoothly
+  // through the loop seam without jumping. thumbEls[c * N + i] is copy c of image i.
+  for (let c = 0; c < COPIES; c++) {
+    for (let i = 0; i < N; i++) {
+      const item = mobileReel[i];
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "thumb";
+      thumb.dataset.image = i;
+
+      const img = document.createElement("img");
+      img.src = PREFIX + item.file + THUMB_SUFFIX;
+      img.alt = "";
+      img.loading = "lazy";
+
+      thumb.appendChild(img);
+      // A tap on a thumb (and only a tap) drives the main photo.
+      thumb.addEventListener("click", () => scrollToIndex(nearestInstanceOf(i), true));
+      reelTrack.appendChild(thumb);
+      thumbEls.push(thumb);
+    }
+  }
+
+  function measure() {
+    step = slides[1].offsetLeft - slides[0].offsetLeft;
+    thumbStep = thumbEls[1].offsetLeft - thumbEls[0].offsetLeft;
+    thumbCenter0 = thumbEls[0].offsetLeft + thumbEls[0].offsetWidth / 2;
+  }
+
+  function centerOf(k) {
+    return slides[k].offsetLeft + slides[k].offsetWidth / 2;
+  }
+
+  function scrollToIndex(k, smooth) {
+    viewer.scrollTo({
+      left: centerOf(k) - viewer.clientWidth / 2,
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }
+
+  // DOM index of the slide whose centre is nearest the viewport centre.
+  function nearestIndex() {
+    const mid = viewer.scrollLeft + viewer.clientWidth / 2;
+    const k = Math.round((mid - centerOf(0)) / step);
+    return Math.max(0, Math.min(slides.length - 1, k));
+  }
+
+  // Which copy of `image` is closest to where we are now — so a tap travels the
+  // short way round the cycle instead of scrolling the whole strip.
+  function nearestInstanceOf(image) {
+    const p = nearestIndex();
+    let best = BASE + image;
+    let bestDist = Infinity;
+    for (let c = 0; c < COPIES; c++) {
+      const k = c * N + image;
+      const d = Math.abs(k - p);
+      if (d < bestDist) {
+        bestDist = d;
+        best = k;
+      }
+    }
+    return best;
+  }
+
+  // Highlight image i across all reel copies. The reel's scroll position is
+  // handled continuously by syncReel, so this only flips the active class.
+  function setActiveImage(i) {
+    if (i === currentImage) return;
+    for (let c = 0; c < COPIES; c++) {
+      thumbEls[c * N + currentImage].classList.remove("active");
+      thumbEls[c * N + i].classList.add("active");
+    }
+    currentImage = i;
+  }
+
+  // Glide the reel in lockstep with the carousel: map the carousel's continuous
+  // (fractional) position straight onto the identically-triplicated thumb strip,
+  // so the reel moves smoothly between thumbnails — and stays seamless through
+  // the loop, since both teleport by the same whole-copy amount.
+  function syncReel() {
+    const mid = viewer.scrollLeft + viewer.clientWidth / 2;
+    const posFloat = (mid - centerOf(0)) / step;
+    reel.scrollLeft = thumbCenter0 + posFloat * thumbStep - reel.clientWidth / 2;
+  }
+
+  // Back to the middle copy at the same photo — instant and seamless.
+  function recenter() {
+    const p = nearestIndex();
+    const desired = BASE + (((p % N) + N) % N);
+    if (desired !== p) scrollToIndex(desired, false);
+  }
+
+  let raf = null;
+  let idle = null;
+  viewer.addEventListener(
+    "scroll",
+    () => {
+      if (raf === null) {
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          syncReel();
+          setActiveImage(((nearestIndex() % N) + N) % N);
+        });
+      }
+      // Recentre once the strip comes to rest.
+      clearTimeout(idle);
+      idle = setTimeout(recenter, 140);
+    },
+    { passive: true }
+  );
+
+  brand.addEventListener("click", () => scrollToIndex(nearestInstanceOf(0), true));
+
+  window.addEventListener("resize", () => {
+    measure();
+    scrollToIndex(BASE + currentImage, false);
+    syncReel();
+  });
+
+  // Start centred on the opening image in the middle copy.
+  measure();
+  scrollToIndex(BASE, false);
+  for (let c = 0; c < COPIES; c++) thumbEls[c * N].classList.add("active");
+  syncReel();
+</script>
+</body>
+</html>
