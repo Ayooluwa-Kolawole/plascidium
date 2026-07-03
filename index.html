@@ -386,6 +386,17 @@
     cursor: pointer;
   }
 
+  /* About link stays reachable inside the lightbox (top-right of the top bar). */
+  .lb-about {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .lb-about:hover {
+    text-decoration: underline;
+  }
+
   /* Copyright matches the normal-page footer rather than the uppercase bar. */
   .lb-copy {
     text-transform: none;
@@ -511,6 +522,7 @@
 <div id="lightbox" aria-hidden="true">
   <header class="lb-bar lb-top">
     <span class="lb-home">Ayooluwa Kolawole</span>
+    <a class="lb-about" href="about.html">About</a>
   </header>
 
   <button class="lb-arrow lb-prev" type="button" aria-label="Previous image">
@@ -723,7 +735,7 @@
   // Glide the row so `cell` becomes the fully shown image (un-deposits it).
   // offsetLeft is unreliable on sticky elements, so sum the natural widths of the
   // preceding cells (they're flush, gap: 0) to find this cell's layout position.
-  function slideToCell(cell) {
+  function slideToCell(cell, smooth = true) {
     const i = Number(cell.dataset.order) || 0;
     let naturalLeft = 0;
     for (let el = cell.previousElementSibling; el; el = el.previousElementSibling) {
@@ -731,7 +743,7 @@
     }
     const max = gallery.scrollWidth - gallery.clientWidth;
     const target = Math.max(0, Math.min(max, naturalLeft - i * STACK_OFFSET));
-    gallery.scrollTo({ left: target, behavior: "smooth" });
+    gallery.scrollTo({ left: target, behavior: smooth ? "smooth" : "auto" });
   }
 
   // A click on a deposited sliver slides it back into view; a click on the fully
@@ -761,13 +773,58 @@
   }
 
   function goToSection(section) {
-    if (mode !== "sections") renderSections();
+    const switching = mode !== "sections";
+    if (switching) renderSections();
     pendingSection = section;
     setActiveNav(section);
+    const first = gallery.querySelector(`.cell[data-section="${section}"]`);
+    if (!first) {
+      armPendingRelease();
+      return;
+    }
+    if (switching) {
+      // Entering the carousel fresh: cells only get their real widths once their
+      // placeholder images load, so measuring now would sum ~0 widths and land us
+      // at the very start. Wait for the images up to this section, then jump
+      // straight there (instant) so the beginning never flashes past.
+      jumpWhenMeasured(first);
+    } else {
+      armPendingRelease();
+      slideToCell(first, true);
+    }
+  }
+
+  // Hold the clicked section's highlight until its scroll settles, with a
+  // fallback in case scrollend doesn't fire.
+  function armPendingRelease() {
     clearTimeout(pendingTimer);
     pendingTimer = setTimeout(releasePendingSection, 1200);
-    const first = gallery.querySelector(`.cell[data-section="${section}"]`);
-    if (first) slideToCell(first);
+  }
+
+  // Jump to `cell` once every placeholder up to and including it has loaded, so
+  // the preceding widths (and thus the scroll target) are correct.
+  function jumpWhenMeasured(cell) {
+    const pending = [];
+    for (let el = cell; el; el = el.previousElementSibling) {
+      const ph = el.querySelector(".ph");
+      if (ph && !(ph.complete && ph.naturalWidth)) pending.push(ph);
+    }
+    const jump = () => {
+      if (mode !== "sections" || pendingSection !== cell.dataset.section) return;
+      armPendingRelease();
+      slideToCell(cell, false);
+    };
+    if (!pending.length) return jump();
+    let remaining = pending.length;
+    pending.forEach((img) => {
+      const settle = () => {
+        img.removeEventListener("load", settle);
+        img.removeEventListener("error", settle);
+        if (--remaining === 0) jump();
+      };
+      img.addEventListener("load", settle);
+      img.addEventListener("error", settle);
+    });
   }
 
   // Highlight the nav item for whichever section sits under the centre of the row.

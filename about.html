@@ -70,11 +70,37 @@
     gap: 56px;
   }
 
-  .card img {
-    display: block;
+  /* About portrait with a blur-up: a small blurred placeholder holds the space
+     while the full image fades in over it once loaded. */
+  .shot {
+    position: relative;
     width: clamp(220px, 20vw, 290px);
-    height: auto;
     align-self: center;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .shot .ph {
+    filter: blur(14px);
+    transform: scale(1.08);
+  }
+
+  .shot .full {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    object-fit: cover;
+    transition: opacity 0.6s ease;
+  }
+
+  .shot.loaded .full {
+    opacity: 1;
   }
 
   .divider {
@@ -82,7 +108,7 @@
     background: var(--line);
   }
 
-  /* Body copy: 12px, vertically centred along the image's height. The fixed
+  /* Body copy: 13px, vertically centred along the image's height. The fixed
      column width reproduces the line wrapping in the design. */
   .bio {
     align-self: center;
@@ -139,15 +165,19 @@
     <div class="spacer-top"></div>
 
     <div class="card">
-      <img src="Processed_Images/archive__bridgeshadow-1200.webp" alt="Photograph by Ayooluwa Kolawole">
+      <div class="shot">
+        <img class="ph" src="Processed_Images/archive__bridgeshadow-700.webp" alt="" aria-hidden="true">
+        <img class="full" src="Processed_Images/archive__bridgeshadow-1200.webp" alt="Photograph by Ayooluwa Kolawole">
+      </div>
       <div class="divider"></div>
       <div class="bio">
-        <p>My name is Ayo, and I'm a Nigerian photographer currently based in Edinburgh. I shoot digital, and I love colourful, candid photos.</p>
+        <p>My name is Ayo, and I'm a Nigerian photographer currently based in Edinburgh. I shoot digital, colourful, candid photos for fun.</p>
         <p>My work has been featured by The Herald Scotland, Sett Studios in Leith, and Summerhall Art Gallery.</p>
         <p>Thank you for your interest in my photography.</p>
         <p>
           <a href="https://instagram.com/plascidium" target="_blank" rel="noopener">Instagram</a><br>
-          <a href="mailto:contact@plascidium.com">contact@plascidium.com</a>
+          <a href="mailto:contact@plascidium.com">contact@plascidium.com</a><br>
+          <a href="https://ayooluwakolawole.com" target="_blank" rel="noopener">ayooluwakolawole.com</a>
         </p>
       </div>
     </div>
@@ -158,5 +188,14 @@
 
     <div class="spacer-bottom"></div>
   </main>
+  <script>
+    // Reveal the full image once it decodes; the blurred placeholder shows until then.
+    document.querySelectorAll(".shot").forEach((shot) => {
+      const full = shot.querySelector(".full");
+      if (!full) return;
+      if (full.complete && full.naturalWidth) shot.classList.add("loaded");
+      else full.addEventListener("load", () => shot.classList.add("loaded"), { once: true });
+    });
+  </script>
 </body>
 </html>

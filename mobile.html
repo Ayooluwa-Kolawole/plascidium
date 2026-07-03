@@ -217,6 +217,46 @@
     position: relative;
     top: 1px;
   }
+
+  /* — Entrance —
+     The carousel/images blur in first over 0.7s; the brand, reel and footer then
+     fade in after (a 0.7s delay). JS adds body.revealed once the opening image is
+     ready to blur in. */
+  .viewer {
+    opacity: 0;
+    filter: blur(16px);
+    transition: opacity 0.7s ease, filter 0.7s ease;
+  }
+
+  .brand-wrap,
+  .reel,
+  footer {
+    opacity: 0;
+    transition: opacity 0.6s ease 0.7s;
+  }
+
+  body.revealed .viewer {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  body.revealed .brand-wrap,
+  body.revealed .reel,
+  body.revealed footer {
+    opacity: 1;
+  }
+
+  /* Reduced-motion: show everything immediately, no blur-in. */
+  @media (prefers-reduced-motion: reduce) {
+    .viewer,
+    .brand-wrap,
+    .reel,
+    footer {
+      opacity: 1;
+      filter: none;
+      transition: none;
+    }
+  }
 </style>
 </head>
 <body>
@@ -264,6 +304,9 @@
   const slides = [];
   const thumbEls = [];
   let step = 0;         // centre-to-centre distance between adjacent slides
+  let center0 = 0;      // centre of slide 0 (cached; avoids per-frame layout reads)
+  let viewerHalf = 0;   // viewer.clientWidth / 2 (cached)
+  let reelHalf = 0;     // reel.clientWidth / 2 (cached)
   let thumbStep = 0;    // centre-to-centre distance between adjacent thumbs
   let thumbCenter0 = 0; // centre of the first thumb, in reel scroll coords
   let currentImage = 0; // 0..N-1
@@ -320,25 +363,32 @@
 
   function measure() {
     step = slides[1].offsetLeft - slides[0].offsetLeft;
+    center0 = slides[0].offsetLeft + slides[0].offsetWidth / 2;
+    viewerHalf = viewer.clientWidth / 2;
+    reelHalf = reel.clientWidth / 2;
     thumbStep = thumbEls[1].offsetLeft - thumbEls[0].offsetLeft;
     thumbCenter0 = thumbEls[0].offsetLeft + thumbEls[0].offsetWidth / 2;
   }
 
+  // Slide centres are evenly spaced, so derive them arithmetically from the
+  // cached first-centre + step rather than reading offsetLeft every scroll frame.
+  // That layout read, interleaved with the reel's scrollLeft write, was the main
+  // source of the scroll jank.
   function centerOf(k) {
-    return slides[k].offsetLeft + slides[k].offsetWidth / 2;
+    return center0 + k * step;
   }
 
   function scrollToIndex(k, smooth) {
     viewer.scrollTo({
-      left: centerOf(k) - viewer.clientWidth / 2,
+      left: centerOf(k) - viewerHalf,
       behavior: smooth ? "smooth" : "auto",
     });
   }
 
   // DOM index of the slide whose centre is nearest the viewport centre.
   function nearestIndex() {
-    const mid = viewer.scrollLeft + viewer.clientWidth / 2;
-    const k = Math.round((mid - centerOf(0)) / step);
+    const mid = viewer.scrollLeft + viewerHalf;
+    const k = Math.round((mid - center0) / step);
     return Math.max(0, Math.min(slides.length - 1, k));
   }
 
@@ -375,9 +425,9 @@
   // so the reel moves smoothly between thumbnails — and stays seamless through
   // the loop, since both teleport by the same whole-copy amount.
   function syncReel() {
-    const mid = viewer.scrollLeft + viewer.clientWidth / 2;
-    const posFloat = (mid - centerOf(0)) / step;
-    reel.scrollLeft = thumbCenter0 + posFloat * thumbStep - reel.clientWidth / 2;
+    const mid = viewer.scrollLeft + viewerHalf;
+    const posFloat = (mid - center0) / step;
+    reel.scrollLeft = thumbCenter0 + posFloat * thumbStep - reelHalf;
   }
 
   // Back to the middle copy at the same photo — instant and seamless.
@@ -419,6 +469,24 @@
   scrollToIndex(BASE, false);
   for (let c = 0; c < COPIES; c++) thumbEls[c * N].classList.add("active");
   syncReel();
+
+  // Staged entrance: blur the carousel in first, then everything else. Fire once
+  // the opening image is ready so it's the image (not an empty frame) that blurs
+  // in; a timeout guards against a missed load event (e.g. cached image).
+  function reveal() {
+    document.body.classList.add("revealed");
+    // Drop the (now zero) blur once the entrance ends so the scroller isn't
+    // composited through a filter on every scroll frame.
+    setTimeout(() => {
+      viewer.style.filter = "none";
+    }, 800);
+  }
+  const firstImg = slides[BASE].querySelector("img");
+  if (firstImg.complete && firstImg.naturalWidth) requestAnimationFrame(reveal);
+  else {
+    firstImg.addEventListener("load", reveal, { once: true });
+    setTimeout(reveal, 1500);
+  }
 </script>
 </body>
 </html>

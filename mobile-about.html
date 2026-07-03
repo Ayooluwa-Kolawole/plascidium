@@ -17,6 +17,7 @@
 
   html,
   body {
+    height: 100%;
     margin: 0;
     padding: 0;
     background: var(--bg);
@@ -26,10 +27,16 @@
     text-rendering: geometricPrecision;
   }
 
-  /* Full-height column; scrolls only if a short screen can't fit everything. */
+  /* Lock the page: no vertical scroll. */
+  body {
+    overflow: hidden;
+  }
+
+  /* Full-height column, pinned to the viewport so nothing scrolls. */
   .about {
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -45,7 +52,7 @@
 
   /* One centred column shared by the text, the rule and the image. */
   .wrap {
-    width: min(72vw, 280px);
+    width: min(68vw, 260px);
   }
 
   .bio {
@@ -75,10 +82,37 @@
     margin: clamp(1.4rem, 6vw, 2.4rem) 0 clamp(1.8rem, 7vw, 2.8rem);
   }
 
+  /* Portrait: 20% narrower than the column, centred, with a blur-up placeholder
+     (blurred 700px) that the full image fades in over once loaded. */
   .shot {
+    position: relative;
+    width: 80%;
+    margin: 0 auto;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .shot img {
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  .shot .ph {
+    filter: blur(14px);
+    transform: scale(1.08);
+  }
+
+  .shot .full {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    object-fit: cover;
+    transition: opacity 0.6s ease;
+  }
+
+  .shot.loaded .full {
+    opacity: 1;
   }
 
   .back {
@@ -99,19 +133,22 @@
 
     <div class="wrap">
       <div class="bio">
-        <p>My name is Ayo, and I'm a Nigerian photographer currently based in Edinburgh. I shoot digital, colourful, candid photos.</p>
+        <p>My name is Ayo, and I'm a Nigerian photographer currently based in Edinburgh. I shoot digital, colourful, candid photos for fun.</p>
         <p>My work has been featured by The Herald Scotland, Sett Studios in Leith, and Summerhall Art Gallery.</p>
         <p>Thank you for your interest in my photography.</p>
         <p class="links">
           <a href="https://instagram.com/plascidium" target="_blank" rel="noopener">Instagram</a><br>
           <a href="mailto:contact@plascidium.com">contact@plascidium.com</a><br>
-          ayooluwakolawole.com
+          <a href="https://ayooluwakolawole.com" target="_blank" rel="noopener">ayooluwakolawole.com</a>
         </p>
       </div>
 
       <hr class="rule">
 
-      <img class="shot" src="Processed_Images/archive__bridgeshadow-1200.webp" alt="Photograph by Ayooluwa Kolawole">
+      <div class="shot">
+        <img class="ph" src="Processed_Images/archive__bridgeshadow-700.webp" alt="" aria-hidden="true">
+        <img class="full" src="Processed_Images/archive__bridgeshadow-1200.webp" alt="Photograph by Ayooluwa Kolawole">
+      </div>
     </div>
 
     <div class="spacer-mid"></div>
@@ -120,5 +157,14 @@
 
     <div class="spacer-bottom"></div>
   </main>
+  <script>
+    // Reveal the full image once it decodes; the blurred placeholder shows until then.
+    document.querySelectorAll(".shot").forEach((shot) => {
+      const full = shot.querySelector(".full");
+      if (!full) return;
+      if (full.complete && full.naturalWidth) shot.classList.add("loaded");
+      else full.addEventListener("load", () => shot.classList.add("loaded"), { once: true });
+    });
+  </script>
 </body>
 </html>
