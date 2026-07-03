@@ -25,8 +25,8 @@
     --text: #0f0f0f;
     --line: #e6e6e6;
     --frame: #080808;
-    --name-size: clamp(2rem, 6.9vw, 4rem);
-    --landing-size: min(70vh, 680px);
+    --name-size: clamp(1.7rem, 5.85vw, 3.4rem);
+    --landing-size: min(54vh, 520px);
   }
 
   * {
@@ -93,10 +93,10 @@
     background: transparent;
     color: var(--text);
     text-transform: uppercase;
-    letter-spacing: 0.36em;
+    letter-spacing: 0.3em;
     font-family: inherit;
-    font-size: 15px;
-    padding: 0.68rem 1.1rem;
+    font-size: 13px;
+    padding: 0.56rem 0.92rem;
     cursor: pointer;
     white-space: nowrap;
     text-align: center;
@@ -146,7 +146,7 @@
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
-    gap: clamp(1.54rem, 3.53vw, 2.87rem);
+    gap: clamp(1.8rem, 4vw, 3.4rem);
   }
 
   /* Section view: let the carousel run all the way to the right browser edge. */
@@ -185,7 +185,7 @@
     position: sticky;
     left: calc(var(--i, 0) * 10px);
     width: auto;
-    height: min(52vh, 486px);
+    height: min(44vh, 415px);
     border: 0;
     /* Opaque white spacer on the right of every image. The image fills the
        content box and never covers this border, so it hides whatever lower
@@ -495,6 +495,45 @@
       padding-bottom: 0.8rem;
     }
   }
+
+  /* — Entrance —
+     The landing photos blur in first over 0.7s; the brand, nav and footer then
+     fade in after (0.7s delay), so the photos lead — like the mobile home page.
+     JS adds body.revealed once the landing images are ready. */
+  .gallery {
+    opacity: 0;
+    filter: blur(16px);
+    transition: opacity 0.7s ease, filter 0.7s ease;
+  }
+
+  .brand-wrap,
+  .top-nav,
+  footer {
+    opacity: 0;
+    transition: opacity 0.6s ease 0.7s;
+  }
+
+  body.revealed .gallery {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  body.revealed .brand-wrap,
+  body.revealed .top-nav,
+  body.revealed footer {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gallery,
+    .brand-wrap,
+    .top-nav,
+    footer {
+      opacity: 1;
+      filter: none;
+      transition: none;
+    }
+  }
 </style>
 </head>
 <body>
@@ -625,7 +664,10 @@
     const img = document.createElement("img");
     img.src = PREFIX + item.file + THUMB_SUFFIX;
     img.alt = "";
-    img.loading = "lazy";
+    // Landing photos load first (eager, high priority) so they're ready to
+    // reveal before anything else — matching the mobile entrance.
+    img.loading = "eager";
+    img.fetchPriority = "high";
 
     cell.appendChild(img);
     cell.addEventListener("click", onClick);
@@ -680,8 +722,8 @@
     const gap = parseFloat(getComputedStyle(gallery).columnGap) || 0;
     const avail = gallery.clientWidth - sumBorders - (cells.length - 1) * gap;
     const maxSize = Math.min(window.innerHeight * 0.7, 680); // the design default
-    // 0.87 = overall scale; lower to shrink the whole landing row, raise to grow.
-    const size = 0.9 * Math.min(maxSize, avail / sumRatio);
+    // Overall scale; lower to shrink the whole landing row, raise to grow.
+    const size = 0.7 * Math.min(maxSize, avail / sumRatio);
     root.style.setProperty("--landing-size", size + "px");
   }
 
@@ -1060,6 +1102,34 @@
 
   setYear();
   renderLanding();
+
+  // Staged entrance (like mobile): the landing photos blur in first, then the
+  // brand, nav and footer fade in. Reveal once the photos are ready so they blur
+  // in already at their final, sized dimensions.
+  function revealHome() {
+    if (document.body.classList.contains("revealed")) return;
+    document.body.classList.add("revealed");
+    // Drop the (now zero) blur once the entrance ends so the gallery isn't
+    // composited through a filter when it becomes the section scroller.
+    setTimeout(() => { gallery.style.filter = "none"; }, 800);
+  }
+  const landingImgs = Array.from(gallery.querySelectorAll("img"));
+  const pendingImgs = landingImgs.filter((img) => !(img.complete && img.naturalWidth));
+  if (!pendingImgs.length) {
+    requestAnimationFrame(revealHome);
+  } else {
+    let remaining = pendingImgs.length;
+    pendingImgs.forEach((img) => {
+      const settle = () => {
+        img.removeEventListener("load", settle);
+        img.removeEventListener("error", settle);
+        if (--remaining === 0) revealHome();
+      };
+      img.addEventListener("load", settle);
+      img.addEventListener("error", settle);
+    });
+    setTimeout(revealHome, 1800); // fallback so the page never stays hidden
+  }
 </script>
 </body>
 </html>
