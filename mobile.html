@@ -5,7 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Ayooluwa Kolawole</title>
 <style>
+  @font-face {
+    /* Self-hosted Jost: non-Apple devices lack Gill Sans, so they fall back to
+       this geometric sans instead of Trebuchet/Arial. Apple devices match Gill
+       Sans first in the stack, so this file is never fetched there. */
+    font-family: "Jost";
+    font-style: normal;
+    font-weight: 400 500;
+    font-display: swap;
+    src: url("fonts/jost.woff2") format("woff2");
+  }
+
   :root {
+    /* "only light" forbids Chrome/Android auto-dark from overriding the site. */
+    color-scheme: only light;
     --bg: #ffffff;
     --text: #0f0f0f;
     --line: #e6e6e6;
@@ -31,7 +44,7 @@
     padding: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: "Gill Sans", "Gill Sans MT", "Trebuchet MS", sans-serif;
+    font-family: "Gill Sans", "Gill Sans MT", "Jost", "Trebuchet MS", sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
   }
